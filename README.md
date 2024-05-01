@@ -35,3 +35,17 @@ model.test(X_test, y_test)
 ```
 可以根据自己的需求修改模型定义、训练和测试的脚本。
 
+### 运行脚本前的准备工作
+1. 安装依赖库numpy. matplotlib
+2. 下载t10k-images-idx3-ubyte.gz, t10k-labels-idx1-ubyte.gz, train-images-idx3-ubyte.gz, train-labels-idx1-ubyte.gz四个数据集文件，并放到data文件夹下
+3. 运行train.py脚本，训练模型，并将模型权重保存到ckpts文件夹下
+```bash
+cd scripts
+python train.py
+```
+
+4. 选择测试模型，运行test，并将模型评估结果保存到results文件夹下
+```bash
+cd scripts
+python test.py
+```
