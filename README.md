@@ -34,3 +34,4 @@ model.load_model(path='ckpts/model.pth')
 model.test(X_test, y_test)
 ```
 可以根据自己的需求修改模型定义、训练和测试的脚本。
+

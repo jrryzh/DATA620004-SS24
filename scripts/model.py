@@ -200,9 +200,9 @@ class MLPModel:
             learning_rate = learning_rate * decay_factor  # 调整学习率
         
         # 保存最优模型参数
-        self.save(f'/Users/jrryzh/Documents/lectures/神经网络/lab1/ckpts/LR{learning_rate}_Lambda{reg_lambda}_Decay{decay_factor}_Batch{batch_size}_Epochs{epochs}_parameters_' + 'best_model_params.pkl', best_params)
+        self.save(f'/Users/jrryzh/Documents/lectures/神经网络/lab1/ckpts/Hidden1{self.params["W1"].shape[1]}_Hidden2{self.params["W2"].shape[1]}_InitLR{initial_learning_rate}_Lambda{reg_lambda}_Decay{decay_factor}_Batch{batch_size}_Epochs{epochs}_parameters_' + 'best_model_params.pkl', best_params)
         # 可视化模型参数
-        self.visualize_parameters(f'/Users/jrryzh/Documents/lectures/神经网络/lab1/results/LR{learning_rate}_Lambda{reg_lambda}_Decay{decay_factor}_Batch{batch_size}_Epochs{epochs}_parameters.png')  
+        self.visualize_parameters(f'/Users/jrryzh/Documents/lectures/神经网络/lab1/results/Hidden1{self.params["W1"].shape[1]}_Hidden2{self.params["W2"].shape[1]}_InitLR{initial_learning_rate}_Lambda{reg_lambda}_Decay{decay_factor}_Batch{batch_size}_Epochs{epochs}_parameters.png')  
         
         # 设置图表标题，包含超参数信息
         title = f'Training Curve: LR={initial_learning_rate}, Lambda={reg_lambda}, Decay={decay_factor}, Batch Size={batch_size}, Epochs={epochs}'
@@ -228,7 +228,7 @@ class MLPModel:
         plt.suptitle(title)
 
         # 保存图像，文件名也包含超参数
-        filename = f'/Users/jrryzh/Documents/lectures/神经网络/lab1/results/LR{initial_learning_rate}_Lambda{reg_lambda}_Decay{decay_factor}_Batch{batch_size}_Epochs{epochs}.png'
+        filename = f'/Users/jrryzh/Documents/lectures/神经网络/lab1/results/Hidden1{self.params["W1"].shape[1]}_Hidden2{self.params["W2"].shape[1]}_InitLR{initial_learning_rate}_Lambda{reg_lambda}_Decay{decay_factor}_Batch{batch_size}_Epochs{epochs}.png'
         plt.savefig(filename)
         print("Saved training curve to file: ", filename)
 

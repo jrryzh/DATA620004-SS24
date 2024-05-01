@@ -21,7 +21,7 @@ def grid_search():
                             # 初始化模型
                             model = MLPModel(input_size=784, hidden_size1=hs1, hidden_size2=hs2, output_size=10, activate_func=activate_func)
                             # 训练模型
-                            model.train(X_train, y_train, X_val, y_val, epochs=50, batch_size=bs, initial_learning_rate=lr, reg_lambda=reg, decay_factor=0.9)
+                            model.train(X_train, y_train, X_val, y_val, epochs=30, batch_size=bs, initial_learning_rate=lr, reg_lambda=reg, decay_factor=0.9)
                             # 测试模型
                             model.test(X_test, y_test)
                             
