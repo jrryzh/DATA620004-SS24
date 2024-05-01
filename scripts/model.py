@@ -200,7 +200,7 @@ class MLPModel:
             learning_rate = learning_rate * decay_factor  # 调整学习率
         
         # 保存最优模型参数
-        self.save('/Users/jrryzh/Documents/lectures/神经网络/lab1/ckpts/LR{learning_rate}_Lambda{reg_lambda}_Decay{decay_factor}_Batch{batch_size}_Epochs{epochs}_parameters_' + 'best_model_params.pkl', best_params)
+        self.save(f'/Users/jrryzh/Documents/lectures/神经网络/lab1/ckpts/LR{learning_rate}_Lambda{reg_lambda}_Decay{decay_factor}_Batch{batch_size}_Epochs{epochs}_parameters_' + 'best_model_params.pkl', best_params)
         # 可视化模型参数
         self.visualize_parameters(f'/Users/jrryzh/Documents/lectures/神经网络/lab1/results/LR{learning_rate}_Lambda{reg_lambda}_Decay{decay_factor}_Batch{batch_size}_Epochs{epochs}_parameters.png')  
         
