@@ -1,4 +1,0 @@
-data/
-ckpts/
-results/
-Hidden1128_Hidden2256_InitLR0.001_Lambda0.01_Decay0.9_Batch32_Epochs30_parameters_best_model_params.pkl

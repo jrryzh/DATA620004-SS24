@@ -1,0 +1,4 @@
+data/
+ckpts/
+results/
+__pycache__/
