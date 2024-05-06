@@ -19,7 +19,7 @@ logging.basicConfig(filename='training.log', level=logging.INFO,
 writer = SummaryWriter('./runs/experiment')
 
 # 定义数据集路径和类别数量
-dataset_dir = '/Users/jrryzh/Documents/lectures/神经网络/pj1/data/CUB_200_2011/'
+dataset_dir = '/share/home/zjy/data/CUB_200_2011'
 num_classes = 200
 
 # 定义预训练的CNN模型
@@ -28,6 +28,9 @@ pretrained_model = models.resnet18(pretrained=True)
 # 修改输出层
 num_ftrs = pretrained_model.fc.in_features
 pretrained_model.fc = torch.nn.Linear(num_ftrs, num_classes)
+
+# 移动到gpu
+pretrained_model.to(device)
 
 # 定义数据加载器
 transform = transforms.Compose([
@@ -68,9 +71,16 @@ num_epochs = 50
 for epoch in range(num_epochs):
     train_loss = 0.0
     for step, (images, labels) in enumerate(train_loader):
+        # 移动到GPU
+        images = images.to(device)  
+        labels = labels.to(device)
+        
+        # 前向传播
         optimizer.zero_grad()
         outputs = pretrained_model(images)
         loss = criterion(outputs, labels)
+        
+        # 反向传播
         loss.backward()
         optimizer.step()
         train_loss += loss.item()
@@ -84,7 +94,12 @@ for epoch in range(num_epochs):
     correct = 0
     total = 0
     for images, labels in val_loader:
+        # 移动到GPU
+        images = images.to(device)
+        labels = labels.to(device)
+        # 前向传播
         outputs = pretrained_model(images)
+        outputs = outputs.to('cpu')
         val_loss += criterion(outputs, labels).item()
         _, predicted = torch.max(outputs.data, 1)
         total += labels.size(0)
@@ -108,6 +123,10 @@ test_loss = 0.0
 correct = 0
 total = 0
 for images, labels in test_loader:
+    # 移动到GPU
+    images = images.to(device)
+    labels = labels.to(device)
+    # 前向传播
     outputs = pretrained_model(images)
     test_loss += criterion(outputs, labels).item()
     _, predicted = torch.max(outputs.data, 1)

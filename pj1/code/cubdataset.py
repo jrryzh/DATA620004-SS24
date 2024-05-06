@@ -43,7 +43,7 @@ class CUBDataset(torch.utils.data.Dataset):
         return img, label-1
     
 if __name__ == '__main__':
-    dataset_dir = '/Users/jrryzh/Documents/lectures/神经网络/pj1/data/CUB_200_2011'
+    dataset_dir = '/share/home/zjy/data/CUB_200_2011'
     # 定义数据加载器
     transform = transforms.Compose([
         transforms.Resize(256),
