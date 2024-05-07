@@ -13,8 +13,8 @@ from cubdataset import CUBDataset
 parser = argparse.ArgumentParser(description='Train a ResNet model from pretrained weights on CUB dataset.')
 
 # 添加参数
-parser.add_argument('--fc_learning_rate', type=float, default=1e-2, help='learning rate for fc layers')
-parser.add_argument('--pretrained_learning_rate', type=float, default=1e-3, help='learning rate for pretrained layers')
+parser.add_argument('--fc_learning_rate', type=float, default=1e-4, help='learning rate for fc layers')
+parser.add_argument('--pretrained_learning_rate', type=float, default=1e-5, help='learning rate for pretrained layers')
 parser.add_argument('--momentum', type=float, default=0.9, help='momentum for SGD optimizer')
 parser.add_argument('--num_epochs', type=int, default=100, help='number of epochs to train')
 # 解析参数
@@ -24,7 +24,7 @@ args = parser.parse_args()
 torch.manual_seed(0)
 
 # 设置GPU
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['CUDA_VISIBLE_DEVICES'] = '7'
 
 # 设置GPU
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

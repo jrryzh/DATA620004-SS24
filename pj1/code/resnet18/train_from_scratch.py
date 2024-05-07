@@ -13,13 +13,13 @@ from cubdataset import CUBDataset
 parser = argparse.ArgumentParser(description='Train a ResNet model from scratch on CUB dataset.')
 
 # 添加参数
-parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
+parser.add_argument('--lr', default=1e-3, type=float, help='learning rate')
 parser.add_argument('--momentum', default=0.9, type=float, help='momentum')
-parser.add_argument('--weight_decay', default=0.0001, type=float, help='weight decay (L2 penalty)')
+parser.add_argument('--weight_decay', default=1e-4, type=float, help='weight decay (L2 penalty)')
 parser.add_argument('--nesterov', default=True, type=bool, help='use Nesterov momentum')
 parser.add_argument('--step_size', default=30, type=int, help='step size for learning rate decay')
 parser.add_argument('--gamma', default=0.1, type=float, help='learning rate decay factor')
-parser.add_argument('--num_epochs', default=100, type=int, help='number of epochs to train')
+parser.add_argument('--num_epochs', default=300, type=int, help='number of epochs to train')
 
 # 解析参数
 args = parser.parse_args()
@@ -28,7 +28,7 @@ args = parser.parse_args()
 torch.manual_seed(0)
 
 # 设置GPU
-os.environ['CUDA_VISIBLE_DEVICES'] = '2'
+os.environ['CUDA_VISIBLE_DEVICES'] = '6'
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # 配置日志记录的格式和级别

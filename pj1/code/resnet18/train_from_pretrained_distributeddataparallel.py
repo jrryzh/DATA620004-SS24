@@ -21,7 +21,7 @@ parser.add_argument('--num_epochs', type=int, default=100, help='number of epoch
 args = parser.parse_args()
 
 # 设置随机种子
-torch.manual_seed(0)
+torch.manual_seed(42)
 
 # 设置GPU
 os.environ['CUDA_VISIBLE_DEVICES'] = '0,1,2,3,4,5,6,7'
@@ -30,11 +30,11 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '0,1,2,3,4,5,6,7'
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # 配置日志记录的格式和级别
-logging.basicConfig(filename=f'/share/home/zjy/code_repo/DATA620004-SS24/pj1/code/resnet18/logs/train_from_pretrained_fc_lr_{args.fc_learning_rate}_pretrained_lr_{args.pretrained_learning_rate}_momentum_{args.momentum}_num_epochs_{args.num_epochs}.log', level=logging.INFO,
+logging.basicConfig(filename=f'/share/home/zjy/code_repo/DATA620004-SS24/pj1/code/resnet18/logs/distributed_resnet18_from_pretrained_fc_lr_{args.fc_learning_rate}_pretrained_lr_{args.pretrained_learning_rate}_momentum_{args.momentum}_num_epochs_{args.num_epochs}.log', level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 # 设置TensorBoard日志目录
-writer = SummaryWriter(f'./runs/resnet18_from_pretrained_fc_lr_{args.fc_learning_rate}_pretrained_lr_{args.pretrained_learning_rate}_momentum_{args.momentum}_num_epochs_{args.num_epochs}')
+writer = SummaryWriter(f'./runs/distributed_resnet18_from_pretrained_fc_lr_{args.fc_learning_rate}_pretrained_lr_{args.pretrained_learning_rate}_momentum_{args.momentum}_num_epochs_{args.num_epochs}')
 
 # 定义数据集路径和类别数量
 dataset_dir = '/share/home/zjy/data/CUB_200_2011'
@@ -130,7 +130,7 @@ for epoch in range(num_epochs):
     if val_acc > best_val_acc:
         best_val_acc = val_acc
         patience = 0
-        torch.save(pretrained_model.state_dict(), f'/share/home/zjy/code_repo/DATA620004-SS24/pj1/code/resnet18/ckpts/train_from_pretrained_fc_lr_{args.fc_learning_rate}_pretrained_lr_{args.pretrained_learning_rate}_momentum_{args.momentum}_num_epochs_{args.num_epochs}_best_val_acc_{val_acc:.4f}.pth')
+        torch.save(pretrained_model.state_dict(), f'/share/home/zjy/code_repo/DATA620004-SS24/pj1/code/resnet18/ckpts/distributed_resnet18_from_pretrained_fc_lr_{args.fc_learning_rate}_pretrained_lr_{args.pretrained_learning_rate}_momentum_{args.momentum}_num_epochs_{args.num_epochs}_best_val_acc_{val_acc:.4f}.pth')
     else:
         patience += 1
         if patience == 10:
