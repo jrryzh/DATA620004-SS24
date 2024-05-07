@@ -9,8 +9,8 @@ transform = transforms.Compose([
 ])
 
 # 加载数据集
-train_dataset = CUBDataset(root_dir='/Users/jrryzh/Documents/lectures/神经网络/pj1/data/CUB_200_2011', split='train', transform=transform)
-test_dataset = CUBDataset(root_dir='/Users/jrryzh/Documents/lectures/神经网络/pj1/data/CUB_200_2011', split='test', transform=transform)
+train_dataset = CUBDataset(root_dir='/share/home/zjy/data/CUB_200_2011', split='train', transform=transform)
+test_dataset = CUBDataset(root_dir='/share/home/zjy/data/CUB_200_2011', split='test', transform=transform)
 
 # 初始化用于累加的变量
 channels_sum = torch.zeros(3)
