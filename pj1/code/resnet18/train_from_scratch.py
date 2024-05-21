@@ -13,9 +13,9 @@ from cubdataset import CUBDataset
 parser = argparse.ArgumentParser(description='Train a ResNet model from scratch on CUB dataset.')
 
 # 添加参数
-parser.add_argument('--lr', default=1e-3, type=float, help='learning rate')
+parser.add_argument('--lr', default=5e-4, type=float, help='learning rate')
 parser.add_argument('--momentum', default=0.9, type=float, help='momentum')
-parser.add_argument('--weight_decay', default=1e-4, type=float, help='weight decay (L2 penalty)')
+parser.add_argument('--weight_decay', default=0, type=float, help='weight decay (L2 penalty)')
 parser.add_argument('--nesterov', default=True, type=bool, help='use Nesterov momentum')
 parser.add_argument('--step_size', default=30, type=int, help='step size for learning rate decay')
 parser.add_argument('--gamma', default=0.1, type=float, help='learning rate decay factor')
@@ -28,7 +28,7 @@ args = parser.parse_args()
 torch.manual_seed(0)
 
 # 设置GPU
-os.environ['CUDA_VISIBLE_DEVICES'] = '6'
+os.environ['CUDA_VISIBLE_DEVICES'] = '7'
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # 配置日志记录的格式和级别
@@ -70,8 +70,8 @@ val_size = len(train_dataset) - train_size
 train_dataset, val_dataset = torch.utils.data.random_split(train_dataset, [train_size, val_size])
 
 # 创建数据加载器
-train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=64, shuffle=True)
-val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=64, shuffle=False)
+train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=128, num_workers=8, shuffle=True)
+val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=128, num_workers=8, shuffle=False)
 
 # 定义优化器
 optimizer = torch.optim.SGD(scratch_model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay, nesterov=args.nesterov)

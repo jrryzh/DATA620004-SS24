@@ -2,6 +2,7 @@ import os
 import argparse
 import logging
 import torch
+import torch.distributed as dist
 import torchvision.models as models
 from torchvision.transforms import transforms
 from torch.utils.tensorboard import SummaryWriter
@@ -13,42 +14,57 @@ from cubdataset import CUBDataset
 parser = argparse.ArgumentParser(description='Train a ResNet model from pretrained weights on CUB dataset.')
 
 # 添加参数
-parser.add_argument('--fc_learning_rate', type=float, default=1e-6, help='learning rate for fc layers')
-parser.add_argument('--pretrained_learning_rate', type=float, default=1e-5, help='learning rate for pretrained layers')
+parser.add_argument('--fc_learning_rate', type=float, default=1e-3, help='learning rate for fc layers')
+parser.add_argument('--pretrained_learning_rate', type=float, default=1e-4, help='learning rate for pretrained layers')
 parser.add_argument('--momentum', type=float, default=0.9, help='momentum for SGD optimizer')
 parser.add_argument('--num_epochs', type=int, default=50, help='number of epochs to train')
+parser.add_argument("--local_rank", default=-1, type=int, help="node rank for distributed training")
 # 解析参数
 args = parser.parse_args()
 
 # 设置随机种子
-torch.manual_seed(0)
+torch.manual_seed(42)
+np.random.seed(42)
+random.seed(42)
+torch.cuda.manual_seed_all(42)
+world_size = dist.get_world_size()
 
 # 设置GPU
-os.environ['CUDA_VISIBLE_DEVICES'] = '4'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0,1,2,7'
 
 # 设置GPU
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+dist.init_process_group(backend="nccl")
+torch.cuda.set_device(args.local_rank)
+rank = dist.get_rank()
+# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+# init device
+if torch.cuda.is_available():
+    device = torch.device("cuda")
+    torch.backends.cudnn.benchmark = True  # cudnn auto-tuner
+else:
+    device = torch.device("cpu")
 
 # 配置日志记录的格式和级别
-logging.basicConfig(filename=f'/share/home/zjy/code_repo/DATA620004-SS24/pj1/code/resnet18/logs/train_from_pretrained_fc_lr_{args.fc_learning_rate}_pretrained_lr_{args.pretrained_learning_rate}_momentum_{args.momentum}_num_epochs_{args.num_epochs}.log', level=logging.INFO,
+logging.basicConfig(filename=f'/share/home/zjy/code_repo/DATA620004-SS24/pj1/code/resnet50/logs/train_from_pretrained_fc_lr_{args.fc_learning_rate}_pretrained_lr_{args.pretrained_learning_rate}_momentum_{args.momentum}_num_epochs_{args.num_epochs}.log', level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 # 设置TensorBoard日志目录
-writer = SummaryWriter(f'./runs/resnet18_from_pretrained_fc_lr_{args.fc_learning_rate}_pretrained_lr_{args.pretrained_learning_rate}_momentum_{args.momentum}_num_epochs_{args.num_epochs}')
+writer = SummaryWriter(f'./runs/resnet50_from_pretrained_fc_lr_{args.fc_learning_rate}_pretrained_lr_{args.pretrained_learning_rate}_momentum_{args.momentum}_num_epochs_{args.num_epochs}')
 
 # 定义数据集路径和类别数量
 dataset_dir = '/share/home/zjy/data/CUB_200_2011'
 num_classes = 200
 
 # 定义预训练的CNN模型
-pretrained_model = models.resnet18(pretrained=True)
+pretrained_model = models.resnet50(pretrained=True)
 
 # 修改输出层
 num_ftrs = pretrained_model.fc.in_features
 pretrained_model.fc = torch.nn.Linear(num_ftrs, num_classes)
 
 # 移动到gpu
-pretrained_model.to(device)
+pretrained_model = torch.nn.parallel.DistributedDataParallel(pretrained_model, device_ids=[args.local_rank])
+
 
 # 定义数据加载器
 transform = transforms.Compose([
@@ -68,7 +84,8 @@ val_size = len(train_dataset) - train_size
 train_dataset, val_dataset = torch.utils.data.random_split(train_dataset, [train_size, val_size])
 
 # 创建数据加载器
-train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=128, num_workers=8, shuffle=True)
+train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
+train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=128, sampler=train_sampler, num_workers=8, shuffle=True)
 val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=128, num_workers=8, shuffle=False)
 
 # 定义优化器和损失函数
@@ -102,6 +119,7 @@ for epoch in range(num_epochs):
         optimizer.step()
         train_loss += loss.item()
         logging.info('Epoch: {}, Step: {}, Loss: {:.4f}'.format(epoch+1, step+1, loss.item()))
+        print('Epoch: {}, Step: {}, Loss: {:.4f}'.format(epoch+1, step+1, loss.item()))
     
     # 记录训练loss
     train_loss /= len(train_loader)
@@ -130,11 +148,12 @@ for epoch in range(num_epochs):
     if val_acc > best_val_acc:
         best_val_acc = val_acc
         patience = 0
-        torch.save(pretrained_model.state_dict(), f'/share/home/zjy/code_repo/DATA620004-SS24/pj1/code/resnet18/ckpts/train_from_pretrained_fc_lr_{args.fc_learning_rate}_pretrained_lr_{args.pretrained_learning_rate}_momentum_{args.momentum}_num_epochs_{args.num_epochs}_best_val_acc_{val_acc:.4f}.pth')
+        torch.save(pretrained_model.state_dict(), f'/share/home/zjy/code_repo/DATA620004-SS24/pj1/code/resnet50/ckpts/train_from_pretrained_fc_lr_{args.fc_learning_rate}_pretrained_lr_{args.pretrained_learning_rate}_momentum_{args.momentum}_num_epochs_{args.num_epochs}_best_val_acc_{val_acc:.4f}.pth')
     else:
         patience += 1
         if patience == 10:
             logging.info('Early stopping at epoch: {}'.format(epoch+1))
+            print('Early stopping at epoch: {}'.format(epoch+1))
             break
         
     # 在TensorBoard中记录验证loss和accuracy
@@ -143,4 +162,5 @@ for epoch in range(num_epochs):
     
     # 打印日志
     logging.info('Epoch: {}, Train Loss: {:.4f}, Val Loss: {:.4f}, Acc: {:.4f}'.format(epoch+1, train_loss, val_loss, val_acc))
+    print('Epoch: {}, Train Loss: {:.4f}, Val Loss: {:.4f}, Acc: {:.4f}'.format(epoch+1, train_loss, val_loss, val_acc))
 writer.close()
