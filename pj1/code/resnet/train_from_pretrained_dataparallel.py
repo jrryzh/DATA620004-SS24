@@ -12,24 +12,25 @@ from cubdataset import CUBDataset
 
 
 # 设置GPU
-os.environ['CUDA_VISIBLE_DEVICES'] = '5,6'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0,1,2,3,4,5,6,7'
+GPU_NUM = len(os.environ['CUDA_VISIBLE_DEVICES'].split(','))
 
 # 创建解析器
 parser = argparse.ArgumentParser(description='Train a ResNet model from pretrained weights on CUB dataset.')
 
 # 添加参数
-parser.add_argument('--model', type=str, default='resnet152', help='name of the model to train')
+parser.add_argument('--model', type=str, default='resnet18', help='name of the model to train')
 parser.add_argument('--pretrained', action='store_true', help='whether to use pretrained weights')
 parser.add_argument('--data_dir', type=str, default='/share/home/zjy/data/CUB_200_2011', help='directory of CUB dataset')
-parser.add_argument('--batch_size', type=int, default=128*4, help='batch size for training')
-parser.add_argument('--learning_rate', type=float, default=1e-4*4, help='learning rate for training from scratch')
-parser.add_argument('--fc_learning_rate', type=float, default=1e-3*4, help='learning rate for fc layers')
-parser.add_argument('--pretrained_learning_rate', type=float, default=1e-4*4, help='learning rate for pretrained layers')
+parser.add_argument('--batch_size', type=int, default=128*GPU_NUM, help='batch size for training')
+parser.add_argument('--learning_rate', type=float, default=5e-3*GPU_NUM, help='learning rate for training from scratch')
+parser.add_argument('--fc_learning_rate', type=float, default=5e-4*GPU_NUM, help='learning rate for fc layers')
+parser.add_argument('--pretrained_learning_rate', type=float, default=5e-3*GPU_NUM, help='learning rate for pretrained layers')
 parser.add_argument('--optimizer', type=str, default='SGD', help='optimizer to use for training')
 parser.add_argument('--scheduler', type=str, default='StepLR', help='scheduler to use for training')
 parser.add_argument('--step_size', type=int, default=10, help='step size for StepLR scheduler')
 parser.add_argument('--momentum', type=float, default=0.9, help='momentum for SGD optimizer')
-parser.add_argument('--weight_decay', type=float, default=1e-4, help='weight decay for SGD optimizer')
+parser.add_argument('--weight_decay', type=float, default=1e-3, help='weight decay for SGD optimizer')
 parser.add_argument('--num_epochs', type=int, default=100, help='number of epochs to train')
 parser.add_argument('--augment', action='store_true', help='whether to use data augmentation')
 parser.add_argument('--dropout_rate', type=float, default=0, help='Dropout rate')
@@ -46,14 +47,14 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 filename = f'model_{args.model}+pretrained_{args.pretrained}+fc_lr_{args.fc_learning_rate}+pretrained_lr_{args.pretrained_learning_rate}+momentum_{args.momentum}+augment_{args.augment}+weight_decay_{args.weight_decay}+dropout_{args.dropout_rate}+scheduler_{args.scheduler}+step_size_{args.step_size}+num_epochs_{args.num_epochs}'
 
 # 配置日志记录的格式和级别
-logging.basicConfig(filename=f'/share/home/zjy/code_repo/DATA620004-SS24/pj1/code/resnet/logs/' + filename + '.log', level=logging.INFO,
+logging.basicConfig(filename=f'./logs/' + filename + '.log', level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 # 设置TensorBoard日志目录
 writer = SummaryWriter(f'./runs/' + filename)
 
 # 定义数据集路径和类别数量
-dataset_dir = '/share/home/zjy/data/CUB_200_2011'
+dataset_dir = '/home/add_disk_e/dataset/CUB_200_2011'
 num_classes = 200
 
 # 定义预训练的CNN模型
@@ -183,7 +184,7 @@ for epoch in range(num_epochs):
     if val_acc > best_val_acc:
         best_val_acc = val_acc
         patience = 0
-        torch.save(pretrained_model.state_dict(), f'/share/home/zjy/code_repo/DATA620004-SS24/pj1/code/resnet/ckpts/'+filename+'.pth')
+        torch.save(pretrained_model.state_dict(), f'./ckpts/'+filename+'.pth')
         patience += 1
         if patience == 10:
             logging.info('Early stopping at epoch: {}'.format(epoch+1))

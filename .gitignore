@@ -4,3 +4,7 @@ __pycache__/
 *.log
 logs/
 ckpts/
+output/
+output_2007/
+data/
+datasets/
