@@ -131,7 +131,7 @@ test_evaluator = val_evaluator
 # 设置优化器
 optim_wrapper = dict(
     type='OptimWrapper',
-    optimizer=dict(type='SGD', lr=0.01, momentum=0.9, weight_decay=0.0005)
+    optimizer=dict(type='SGD', lr=0.0001, momentum=0.9, weight_decay=0.0005)
     )
 
 # 设置定制的学习率策略

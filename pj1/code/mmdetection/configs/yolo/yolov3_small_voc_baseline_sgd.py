@@ -10,11 +10,13 @@ data_preprocessor = dict(
 model = dict(
     type='YOLOV3',
     data_preprocessor=data_preprocessor,
+    init_cfg=dict(type='Pretrained', checkpoint='/home/add_disk/zhangjinyu/weights/yolov3_d53_mstrain-608_273e_coco_20210518_115020-a2c3acb8.pth'),
     backbone=dict(
         type='Darknet',
         depth=53,
         out_indices=(3, 4, 5),
-        init_cfg=dict(type='Pretrained', checkpoint='open-mmlab://darknet53')),
+        # init_cfg=dict(type='Pretrained', checkpoint='open-mmlab://darknet53')
+        ),
     neck=dict(
         type='YOLOV3Neck',
         num_scales=3,
@@ -72,41 +74,55 @@ backend_args = None
 train_pipeline = [
     dict(type='LoadImageFromFile', backend_args=backend_args),
     dict(type='LoadAnnotations', with_bbox=True),
-    dict(type='Resize', scale=(416, 416), keep_ratio=True),
+    dict(type='Resize', scale=(1000, 600), keep_ratio=True),
     dict(type='RandomFlip', prob=0.5),
-    dict(type='PhotoMetricDistortion'),
-    dict(type='Normalize', mean=[0, 0, 0], std=[255., 255., 255.], to_rgb=True),
-    dict(type='Pad', size_divisor=32),
-    dict(type='DefaultFormatBundle'),
-    dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels'])
+    dict(type='PackDetInputs')
 ]
+
 test_pipeline = [
     dict(type='LoadImageFromFile', backend_args=backend_args),
-    dict(type='Resize', scale=(416, 416), keep_ratio=True),
-    dict(type='Normalize', mean=[0, 0, 0], std=[255., 255., 255.], to_rgb=True),
-    dict(type='Pad', size_divisor=32),
-    dict(type='ImageToTensor', keys=['img']),
-    dict(type='Collect', keys=['img'])
+    dict(type='Resize', scale=(1000, 600), keep_ratio=True),
+    # avoid bboxes being resized
+    dict(type='LoadAnnotations', with_bbox=True),
+    dict(
+        type='PackDetInputs',
+        meta_keys=('img_id', 'img_path', 'ori_shape', 'img_shape',
+                   'scale_factor'))
 ]
+
 train_dataloader = dict(
-    batch_size=16,
-    num_workers=4,
+    batch_size=2,
+    num_workers=2,
     persistent_workers=True,
+    drop_last=False,
     sampler=dict(type='DefaultSampler', shuffle=True),
     dataset=dict(
-        type='RepeatDataset',
-        times=3,
-        dataset=dict(
-            type=dataset_type,
-            data_root=data_root,
-            ann_file='VOC2007/ImageSets/Main/trainval.txt',
-            data_prefix=dict(sub_data_root='VOC2007/'),
-            pipeline=train_pipeline,
-            backend_args=backend_args)))
+        type=dataset_type,
+        data_root=data_root,
+        ann_file='VOC2007/ImageSets/Main/train.txt',
+        data_prefix=dict(sub_data_root='VOC2007/'),
+        test_mode=True,
+        pipeline=test_pipeline,
+        backend_args=backend_args))
 
 val_dataloader = dict(
-    batch_size=8,
-    num_workers=4,
+    batch_size=1,
+    num_workers=2,
+    persistent_workers=True,
+    drop_last=False,
+    sampler=dict(type='DefaultSampler', shuffle=False),
+    dataset=dict(
+        type=dataset_type,
+        data_root=data_root,
+        ann_file='VOC2007/ImageSets/Main/val.txt',
+        data_prefix=dict(sub_data_root='VOC2007/'),
+        test_mode=True,
+        pipeline=test_pipeline,
+        backend_args=backend_args))
+
+test_dataloader = dict(
+    batch_size=1,
+    num_workers=2,
     persistent_workers=True,
     drop_last=False,
     sampler=dict(type='DefaultSampler', shuffle=False),
@@ -118,69 +134,32 @@ val_dataloader = dict(
         test_mode=True,
         pipeline=test_pipeline,
         backend_args=backend_args))
-test_dataloader = val_dataloader
 
 # Pascal VOC2007 uses `11points` as default evaluate mode, while PASCAL
 # VOC2012 defaults to use 'area'.
 val_evaluator = dict(type='VOCMetric', metric='mAP', eval_mode='11points')
 test_evaluator = val_evaluator
 
-# 设置优化器
+train_cfg = dict(max_epochs=273, val_interval=7)
+
+# optimizer
 optim_wrapper = dict(
     type='OptimWrapper',
-    optimizer=dict(type='SGD', lr=0.001, momentum=0.9, weight_decay=0.0005))
+    optimizer=dict(type='SGD', lr=1e-6, momentum=0.9, weight_decay=0.0005),
+    clip_grad=dict(max_norm=35, norm_type=2))
 
-# 设置定制的学习率策略
-param_scheduler = [
-    dict(
-        type='LinearLR', start_factor=0.001, by_epoch=False, begin=0, end=500),
-    dict(
-        type='MultiStepLR',
-        begin=0,
-        end=50,
-        by_epoch=True,
-        milestones=[30, 40],
-        gamma=0.1)
-]
-
-# # 设置冻结层策略
-# # initial training phase to only train the heads
-# frozen_layers = [
-#     'backbone.layers.0', 'backbone.layers.1', 'backbone.layers.2', 'backbone.layers.3'
+# # learning policy
+# param_scheduler = [
+#     dict(type='LinearLR', start_factor=0.1, by_epoch=False, begin=0, end=2000),
+#     dict(type='MultiStepLR', by_epoch=True, milestones=[218, 246], gamma=0.1)
 # ]
 
-# train_cfg = dict(
-#     init=dict(frozen_stages=frozen_layers),
-#     unfreeze=dict(frozen_stages=[]),
-#     total_epochs=50
-# )
 
-# custom_hooks = [
-#     dict(
-#         type='FreezeLayers',
-#         frozen_stages=frozen_layers,
-#         iters=5000,
-#         priority=50
-#     ),
-#     dict(
-#         type='UnfreezeLayers',
-#         frozen_stages=[],
-#         iters=10000,
-#         priority=50
-#     )
-# ]
+auto_scale_lr = dict(base_batch_size=64)
 
-# # 配置完整性
-# default_hooks = dict(
-#     checkpoint=dict(type='CheckpointHook', interval=1),
-#     log=dict(type='LoggerHook', interval=50)
-# )
+work_dir = '/home/add_disk/zhangjinyu/work_dir/yolov3/'
 
-# log_config = dict(
-#     interval=50,
-#     hooks=[
-#         dict(type='TextLoggerHook')
-#     ]
-# )
-
-auto_scale_lr = dict(enable=False, base_batch_size=16)
+# 配置保存检查点的间隔
+default_hooks = dict(
+    checkpoint=dict(interval=20)
+)

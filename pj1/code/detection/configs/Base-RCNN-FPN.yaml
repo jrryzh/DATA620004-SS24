@@ -31,7 +31,7 @@ MODEL:
     NUM_CONV: 4
     POOLER_RESOLUTION: 14
 DATASETS:
-  TRAIN: ("voc_2007_trainval",)
+  TRAIN: ("voc_2007_train",)
   TEST: ("voc_2007_test",)
 # SOLVER:
 #   IMS_PER_BATCH: 16

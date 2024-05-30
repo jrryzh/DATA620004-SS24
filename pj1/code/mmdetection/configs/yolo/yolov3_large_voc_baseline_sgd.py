@@ -10,11 +10,13 @@ data_preprocessor = dict(
 model = dict(
     type='YOLOV3',
     data_preprocessor=data_preprocessor,
+    init_cfg=dict(type='Pretrained', checkpoint='/home/add_disk/zhangjinyu/weights/yolov3_d53_mstrain-608_273e_coco_20210518_115020-a2c3acb8.pth'),
     backbone=dict(
         type='Darknet',
         depth=53,
         out_indices=(3, 4, 5),
-        init_cfg=dict(type='Pretrained', checkpoint='open-mmlab://darknet53')),
+        # init_cfg=dict(type='Pretrained', checkpoint='open-mmlab://darknet53')
+        ),
     neck=dict(
         type='YOLOV3Neck',
         num_scales=3,
@@ -138,68 +140,26 @@ test_dataloader = dict(
 val_evaluator = dict(type='VOCMetric', metric='mAP', eval_mode='11points')
 test_evaluator = val_evaluator
 
-# fp16 settings
-# optim_wrapper = dict(type='AmpOptimWrapper', loss_scale='dynamic')
-# 设置优化器
-# optim_wrapper = dict(
-#     type='OptimWrapper',
-#     optimizer=dict(type='SGD', lr=0.0001, momentum=0.9, weight_decay=0.0005))
-
-# 设置定制的学习率策略
-# param_scheduler = [
-#     dict(
-#         type='LinearLR', start_factor=0.001, by_epoch=False, begin=0, end=1000),
-#     dict(
-#         type='MultiStepLR',
-#         begin=0,
-#         end=50,
-#         by_epoch=True,
-#         milestones=[30, 40],
-#         gamma=0.1)
-# ]
+train_cfg = dict(max_epochs=300, val_interval=7)
 
 # SGD
-# 设置优化器
-# optim_wrapper = dict(
-#     type='OptimWrapper',
-#     optimizer=dict(type='SGD', lr=0.001, momentum=0.9, weight_decay=0.0005),
-#     paramwise_cfg=dict(bias_lr_mult=2., bias_decay_mult=0.))
-
-# # 设置定制的学习率策略
-# param_scheduler = [
-#     dict(
-#         type='LinearLR', start_factor=0.01, by_epoch=False, begin=0, end=1000),
-#     dict(
-#         type='CosineAnnealingLR',
-#         begin=0,
-#         end=100,  # 将学习率调度的结束epoch调整为100
-#         by_epoch=True,
-#         T_max=100)  # 设置T_max为100
-# ]
-
-total_epochs = 300
-
-# ADAMW
 optim_wrapper = dict(
     type='OptimWrapper',
-    # 优化器
-    optimizer=dict(
-        type='AdamW',
-        lr=0.0001,
-        weight_decay=0.05,
-        eps=1e-8,
-        betas=(0.9, 0.999)),
+    optimizer=dict(type='SGD', lr=0.01, momentum=0.9, weight_decay=0.0005),
+    clip_grad=dict(max_norm=35, norm_type=2))
 
-    # 参数层面的学习率和正则化设置
-    paramwise_cfg=dict(
-        custom_keys={
-            'backbone': dict(lr_mult=0.1, decay_mult=1.0),
-        },
-        norm_decay_mult=0.0),
+# learning policy
+param_scheduler = [
+    dict(type='LinearLR', start_factor=0.1, by_epoch=False, begin=0, end=2000),
+    dict(type='MultiStepLR', by_epoch=True, milestones=[100, 200], gamma=0.1)
+]
 
-    # 梯度裁剪
-    clip_grad=dict(max_norm=0.01, norm_type=2))
 
-# runner = dict(type='EpochBasedRunner', max_epochs=300)
+auto_scale_lr = dict(base_batch_size=64)
 
-auto_scale_lr = dict(enable=False, base_batch_size=16)
+work_dir = '/home/add_disk/zhangjinyu/work_dir/yolov3/'
+
+# 配置保存检查点的间隔
+default_hooks = dict(
+    checkpoint=dict(interval=20)
+)

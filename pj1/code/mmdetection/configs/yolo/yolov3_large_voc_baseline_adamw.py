@@ -10,11 +10,13 @@ data_preprocessor = dict(
 model = dict(
     type='YOLOV3',
     data_preprocessor=data_preprocessor,
+    # init_cfg=dict(type='Pretrained', checkpoint='/home/add_disk/zhangjinyu/weights/yolov3_d53_mstrain-608_273e_coco_20210518_115020-a2c3acb8.pth'),
     backbone=dict(
         type='Darknet',
         depth=53,
         out_indices=(3, 4, 5),
-        init_cfg=dict(type='Pretrained', checkpoint='open-mmlab://darknet53')),
+        # init_cfg=dict(type='Pretrained', checkpoint='open-mmlab://darknet53')
+        ),
     neck=dict(
         type='YOLOV3Neck',
         num_scales=3,
@@ -63,6 +65,8 @@ model = dict(
         conf_thr=0.005,
         nms=dict(type='nms', iou_threshold=0.45),
         max_per_img=100))
+
+load_from = '/home/add_disk/zhangjinyu/weights/yolov3_d53_mstrain-608_273e_coco_20210518_115020-a2c3acb8.pth'
 
 # dataset settings
 dataset_type = 'VOCDataset'
@@ -138,62 +142,17 @@ test_dataloader = dict(
 val_evaluator = dict(type='VOCMetric', metric='mAP', eval_mode='11points')
 test_evaluator = val_evaluator
 
-# fp16 settings
-# optim_wrapper = dict(type='AmpOptimWrapper', loss_scale='dynamic')
-# 设置优化器
-# optim_wrapper = dict(
-#     type='OptimWrapper',
-#     optimizer=dict(type='SGD', lr=0.0001, momentum=0.9, weight_decay=0.0005))
-
-# 设置定制的学习率策略
-# param_scheduler = [
-#     dict(
-#         type='LinearLR', start_factor=0.001, by_epoch=False, begin=0, end=1000),
-#     dict(
-#         type='MultiStepLR',
-#         begin=0,
-#         end=50,
-#         by_epoch=True,
-#         milestones=[30, 40],
-#         gamma=0.1)
-# ]
-
-# SGD
-# 设置优化器
-# optim_wrapper = dict(
-#     type='OptimWrapper',
-#     optimizer=dict(type='SGD', lr=0.001, momentum=0.9, weight_decay=0.0005),
-#     paramwise_cfg=dict(bias_lr_mult=2., bias_decay_mult=0.))
-
-# # 设置定制的学习率策略
-# param_scheduler = [
-#     dict(
-#         type='LinearLR', start_factor=0.01, by_epoch=False, begin=0, end=1000),
-#     dict(
-#         type='CosineAnnealingLR',
-#         begin=0,
-#         end=100,  # 将学习率调度的结束epoch调整为100
-#         by_epoch=True,
-#         T_max=100)  # 设置T_max为100
-# ]
-
 train_cfg = dict(max_epochs=300, val_interval=7)
 
-# SGD
+# optimizer
 optim_wrapper = dict(
     type='OptimWrapper',
-    optimizer=dict(type='SGD', lr=0.0001, momentum=0.9, weight_decay=0.0005),
-    clip_grad=dict(max_norm=35, norm_type=2))
+    optimizer=dict(type='Adam', lr=0.0003, weight_decay=0.0001))
 
-# learning policy
-param_scheduler = [
-    dict(type='LinearLR', start_factor=0.1, by_epoch=False, begin=0, end=2000),
-    dict(type='MultiStepLR', by_epoch=True, milestones=[100, 200], gamma=0.1)
-]
-
-
-# runner = dict(type='EpochBasedRunner', max_epochs=300)
-
-auto_scale_lr = dict(base_batch_size=64)
+# # learning policy
+# param_scheduler = [
+#     dict(type='LinearLR', start_factor=0.1, by_epoch=False, begin=0, end=2000),
+#     dict(type='MultiStepLR', by_epoch=True, milestones=[218, 246], gamma=0.1)
+# ]
 
 work_dir = '/home/add_disk/zhangjinyu/work_dir/yolov3/'
