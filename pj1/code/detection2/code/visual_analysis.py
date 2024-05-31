@@ -59,11 +59,11 @@ def visualize_proposals_and_predictions(image, proposals, predictions, metadata)
     proposals = proposals.to('cpu')
     predictions = predictions.to('cpu')
     
-    v = Visualizer(image[:, :, ::-1], metadata=metadata, scale=1.0)
+    v = Visualizer(image[:, :, ::-1], metadata=metadata, scale=1.2)
     v = v.overlay_instances(boxes=proposals.proposal_boxes)
     proposals_img = v.get_image()[:, :, ::-1]
 
-    v = Visualizer(image[:, :, ::-1], metadata=metadata, scale=1.0)
+    v = Visualizer(image[:, :, ::-1], metadata=metadata, scale=1.2)
     v = v.draw_instance_predictions(predictions)
     predictions_img = v.get_image()[:, :, ::-1]
 
