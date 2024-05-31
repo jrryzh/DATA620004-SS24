@@ -12,8 +12,9 @@ from cubdataset import CUBDataset
 
 
 # 设置GPU
-# os.environ['CUDA_VISIBLE_DEVICES'] = '0,1,2,3,4,5,6,7'
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0,1,2,3'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '4,5,6,7'
+os.environ['CUDA_VISIBLE_DEVICES'] = '4'
 GPU_NUM = len(os.environ['CUDA_VISIBLE_DEVICES'].split(','))
 
 # 创建解析器
@@ -23,10 +24,10 @@ parser = argparse.ArgumentParser(description='Train a ResNet model from pretrain
 parser.add_argument('--model', type=str, default='resnet18', help='name of the model to train')
 parser.add_argument('--pretrained', action='store_true', help='whether to use pretrained weights')
 parser.add_argument('--data_dir', type=str, default='/share/home/zjy/data/CUB_200_2011', help='directory of CUB dataset')
-parser.add_argument('--batch_size', type=int, default=8*GPU_NUM, help='batch size for training')
-parser.add_argument('--learning_rate', type=float, default=1e-3*GPU_NUM, help='learning rate for training from scratch')
-parser.add_argument('--fc_learning_rate', type=float, default=1e-2*GPU_NUM, help='learning rate for fc layers')
-parser.add_argument('--pretrained_learning_rate', type=float, default=1e-4*GPU_NUM, help='learning rate for pretrained layers')
+parser.add_argument('--batch_size', type=int, default=8, help='batch size for training')
+parser.add_argument('--learning_rate', type=float, default=1e-2, help='learning rate for training from scratch')
+parser.add_argument('--fc_learning_rate', type=float, default=1e-2, help='learning rate for fc layers')
+parser.add_argument('--pretrained_learning_rate', type=float, default=1e-4, help='learning rate for pretrained layers')
 parser.add_argument('--optimizer', type=str, default='SGD', help='optimizer to use for training')
 parser.add_argument('--scheduler', type=str, default='StepLR', help='scheduler to use for training')
 parser.add_argument('--step_size', type=int, default=10, help='step size for StepLR scheduler')
