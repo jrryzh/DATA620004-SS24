@@ -1,5 +1,11 @@
 _base_ = ['../_base_/schedules/schedule_1x.py', '../_base_/default_runtime.py']
 
+# # test TensorBoard
+# _base_.visualizer.vis_backends = [
+#     dict(type='LocalVisBackend'), #
+#     dict(type='TensorboardVisBackend'),
+#     dict(type='WandbVisBackend'),]
+
 # model settings
 data_preprocessor = dict(
     type='DetDataPreprocessor',
@@ -9,7 +15,7 @@ data_preprocessor = dict(
     pad_size_divisor=32)
 model = dict(
     type='YOLOV3',
-    # data_preprocessor=data_preprocessor,
+    data_preprocessor=data_preprocessor,
     backbone=dict(
         type='Darknet',
         depth=53,
@@ -64,48 +70,83 @@ model = dict(
         nms=dict(type='nms', iou_threshold=0.45),
         max_per_img=100))
 
+
+
 # dataset settings
 dataset_type = 'VOCDataset'
 data_root = 'data/VOCdevkit/'
+
+# Example to use different file client
+# Method 1: simply set the data root and let the file I/O module
+# automatically Infer from prefix (not support LMDB and Memcache yet)
+
+# data_root = 's3://openmmlab/datasets/detection/segmentation/VOCdevkit/'
+
+# Method 2: Use `backend_args`, `file_client_args` in versions before 3.0.0rc6
+# backend_args = dict(
+#     backend='petrel',
+#     path_mapping=dict({
+#         './data/': 's3://openmmlab/datasets/segmentation/',
+#         'data/': 's3://openmmlab/datasets/segmentation/'
+#     }))
+
+# 之前为 VOC 数据集
 backend_args = None
 
 train_pipeline = [
     dict(type='LoadImageFromFile', backend_args=backend_args),
     dict(type='LoadAnnotations', with_bbox=True),
-    dict(type='Resize', scale=(1000, 600), keep_ratio=True),
+    dict(
+        type='Expand',
+        mean=data_preprocessor['mean'],
+        to_rgb=data_preprocessor['bgr_to_rgb'],
+        ratio_range=(1, 2)),
+    dict(
+        type='MinIoURandomCrop',
+        min_ious=(0.4, 0.5, 0.6, 0.7, 0.8, 0.9),
+        min_crop_size=0.3),
+    dict(type='RandomResize', scale=[(320, 320), (608, 608)], keep_ratio=True),
     dict(type='RandomFlip', prob=0.5),
     dict(type='PhotoMetricDistortion'),
-    dict(type='Expand', mean=[123.675, 116.28, 103.53], to_rgb=True),
-    dict(type='MinIoURandomCrop'),
-    dict(type='Normalize', mean=[0, 0, 0], std=[255., 255., 255.], to_rgb=True),
-    dict(type='Pad', size_divisor=32),
     dict(type='PackDetInputs')
 ]
-
 test_pipeline = [
     dict(type='LoadImageFromFile', backend_args=backend_args),
-    dict(type='Resize', scale=(1000, 600), keep_ratio=True),
-    # avoid bboxes being resized
+    dict(type='Resize', scale=(608, 608), keep_ratio=True),
     dict(type='LoadAnnotations', with_bbox=True),
     dict(
         type='PackDetInputs',
         meta_keys=('img_id', 'img_path', 'ori_shape', 'img_shape',
                    'scale_factor'))
 ]
+
 train_dataloader = dict(
-    batch_size=2,
-    num_workers=2,
+    batch_size=8,
+    num_workers=4,
     persistent_workers=True,
-    drop_last=False,
     sampler=dict(type='DefaultSampler', shuffle=True),
+    batch_sampler=dict(type='AspectRatioBatchSampler'),
     dataset=dict(
-        type=dataset_type,
-        data_root=data_root,
-        ann_file='VOC2007/ImageSets/Main/train.txt',
-        data_prefix=dict(sub_data_root='VOC2007/'),
-        test_mode=False,
-        pipeline=train_pipeline,
-        backend_args=backend_args))
+        type='RepeatDataset',
+        times=3,
+        dataset=dict(
+            type='ConcatDataset',
+            # VOCDataset will add different `dataset_type` in dataset.metainfo,
+            # which will get error if using ConcatDataset. Adding
+            # `ignore_keys` can avoid this error.
+            ignore_keys=['dataset_type'],
+            datasets=[
+                dict(
+                    type=dataset_type,
+                    data_root=data_root,
+                    ann_file='VOC2007/ImageSets/Main/train.txt',
+                    # ann_file='VOC2007/ImageSets/Main/trainval.txt',
+                    data_prefix=dict(sub_data_root='VOC2007/'),
+                    filter_cfg=dict(
+                        filter_empty_gt=True, min_size=32, bbox_min_size=32),
+                    pipeline=train_pipeline,
+                    backend_args=backend_args),
+            ])))
 
 val_dataloader = dict(
     batch_size=1,
@@ -116,7 +157,7 @@ val_dataloader = dict(
     dataset=dict(
         type=dataset_type,
         data_root=data_root,
-        ann_file='VOC2007/ImageSets/Main/test.txt',
+        ann_file='VOC2007/ImageSets/Main/val.txt',
         data_prefix=dict(sub_data_root='VOC2007/'),
         test_mode=True,
         pipeline=test_pipeline,
@@ -128,22 +169,33 @@ test_dataloader = val_dataloader
 val_evaluator = dict(type='VOCMetric', metric='mAP', eval_mode='11points')
 test_evaluator = val_evaluator
 
-# 设置优化器
+train_cfg = dict(max_epochs=273, val_interval=5)
+# optimizer
 optim_wrapper = dict(
     type='OptimWrapper',
-    optimizer=dict(type='SGD', lr=0.0001, momentum=0.9, weight_decay=0.0005)
-    )
+    optimizer=dict(type='SGD', lr=0.001, momentum=0.9, weight_decay=0.0005),
+    clip_grad=dict(max_norm=35, norm_type=2))
 
-# 设置定制的学习率策略
+# learning policy
 param_scheduler = [
-    dict(
-        type='LinearLR', start_factor=0.001, by_epoch=False, begin=0, end=500),
-    dict(
-        type='CosineAnnealingLR',
-        begin=0,
-        end=50,
-        by_epoch=True,
-        T_max=50)
+    dict(type='LinearLR', start_factor=0.1, by_epoch=False, begin=0, end=2000),
+    dict(type='MultiStepLR', by_epoch=True, milestones=[218, 246], gamma=0.1)
 ]
 
-auto_scale_lr = dict(enable=False, base_batch_size=16)
+default_hooks = dict(checkpoint=dict(type='CheckpointHook', interval=15))
+
+# NOTE: `auto_scale_lr` is for automatically scaling LR,
+# USER SHOULD NOT CHANGE ITS VALUES.
+# base_batch_size = (8 GPUs) x (8 samples per GPU)
+auto_scale_lr = dict(base_batch_size=64)
+
+# tensorboard
+#
+log_config = dict(
+    interval=1,
+    hooks=[
+        dict(type='TextLoggerHook'),
+        dict(type='TensorboardLoggerHook')
+    ])
+
+work_dir = '/home/add_disk/zhangjinyu/work_dir/yolov3/v1/'

@@ -4,3 +4,6 @@ conda activate nnlecture
 
 # train
 python code/train.py
+
+# test
+python code/test.py --checkpoint_path ckpts/model_resnet18+pretrained_True+fc_lr_0.01+pretrained_lr_0.0001+momentum_0.9+augment_False+weight_decay_0.001+dropout_0+scheduler_StepLR+step_size_10+num_epochs_300.pth

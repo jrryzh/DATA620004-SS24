@@ -8,10 +8,10 @@ MODEL:
 #   STEPS: (210000, 250000)
 #   MAX_ITER: 270000
 SOLVER:
-  BASE_LR: 0.001  # 覆盖基础配置文件中的初始学习率
+  BASE_LR: 0.0025  # 覆盖基础配置文件中的初始学习率
   STEPS: (60000, 80000)  # 覆盖基础配置文件中的学习率衰减步骤
-  MAX_ITER: 90000  # 覆盖基础配置文件中的最大迭代次数
-  CHECKPOINT_PERIOD: 10000  # 每 5000 次迭代保存一次模型
+  MAX_ITER: 120000  # 覆盖基础配置文件中的最大迭代次数
+  CHECKPOINT_PERIOD: 6000  # 每 5000 次迭代保存一次模型
 OUTPUT_DIR: "./output_resnet50_fpn_3x"  # 设置模型和日志的保存目录
 TEST:
-  EVAL_PERIOD: 5000  # 每 5000 次迭代进行一次评估
+  EVAL_PERIOD: 10000  # 每 5000 次迭代进行一次评估

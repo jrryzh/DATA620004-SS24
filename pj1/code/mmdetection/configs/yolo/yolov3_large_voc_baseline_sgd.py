@@ -74,14 +74,14 @@ backend_args = None
 train_pipeline = [
     dict(type='LoadImageFromFile', backend_args=backend_args),
     dict(type='LoadAnnotations', with_bbox=True),
-    dict(type='Resize', scale=(1000, 600), keep_ratio=True),
+    dict(type='Resize', scale=(608, 608), keep_ratio=True),
     dict(type='RandomFlip', prob=0.5),
     dict(type='PackDetInputs')
 ]
 
 test_pipeline = [
     dict(type='LoadImageFromFile', backend_args=backend_args),
-    dict(type='Resize', scale=(1000, 600), keep_ratio=True),
+    dict(type='Resize', scale=(608, 608), keep_ratio=True),
     # avoid bboxes being resized
     dict(type='LoadAnnotations', with_bbox=True),
     dict(
@@ -91,7 +91,7 @@ test_pipeline = [
 ]
 
 train_dataloader = dict(
-    batch_size=2,
+    batch_size=8,
     num_workers=2,
     persistent_workers=True,
     drop_last=False,
@@ -145,7 +145,7 @@ train_cfg = dict(max_epochs=300, val_interval=7)
 # SGD
 optim_wrapper = dict(
     type='OptimWrapper',
-    optimizer=dict(type='SGD', lr=0.01, momentum=0.9, weight_decay=0.0005),
+    optimizer=dict(type='SGD', lr=0.001, momentum=0.9, weight_decay=0.0005),
     clip_grad=dict(max_norm=35, norm_type=2))
 
 # learning policy
@@ -161,5 +161,5 @@ work_dir = '/home/add_disk/zhangjinyu/work_dir/yolov3/'
 
 # 配置保存检查点的间隔
 default_hooks = dict(
-    checkpoint=dict(interval=20)
+    checkpoint=dict(interval=50)
 )
