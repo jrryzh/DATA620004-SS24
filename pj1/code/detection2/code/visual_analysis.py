@@ -1,105 +1,71 @@
 import torch
-from detectron2.config import get_cfg
+import detectron2
 from detectron2.engine import DefaultPredictor
+from detectron2.config import get_cfg
+from detectron2 import model_zoo
 from detectron2.utils.visualizer import Visualizer, ColorMode
-from detectron2.data import MetadataCatalog
-from detectron2.checkpoint import DetectionCheckpointer
+from detectron2.data import MetadataCatalog, DatasetCatalog
 from detectron2.modeling import build_model
-from detectron2.structures import Instances
-from detectron2.data import detection_utils as utils
+from detectron2.data.transforms import ResizeShortestEdge
 import cv2
 import matplotlib.pyplot as plt
-from detectron2.data.datasets import register_pascal_voc
-from detectron2.data import DatasetCatalog, MetadataCatalog
 import random
 
-# 设置配置文件路径和模型权重路径
-config_file_path = "/home/fudan248/zhangjinyu/code_repo/DATA620004-SS24/pj1/code/detection/configs/faster_rcnn_R_101_FPN_3x.yaml"
-model_weights_path = "/home/fudan248/zhangjinyu/code_repo/DATA620004-SS24/pj1/code/detection/output_2007/model_0089999.pth"
-
-# 加载配置文件
+# 配置
 cfg = get_cfg()
-cfg.merge_from_file(config_file_path)
-cfg.MODEL.WEIGHTS = model_weights_path
+cfg.merge_from_file("/home/fudan248/zhangjinyu/code_repo/DATA620004-SS24/pj1/code/detection2/configs/faster_rcnn_R_101_FPN_3x_gpt.yaml")
 cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5  # 设置测试阈值
-cfg.MODEL.DEVICE = "cuda"  # 使用 GPU 进行推理
+cfg.MODEL.WEIGHTS = "/home/fudan248/zhangjinyu/code_repo/DATA620004-SS24/pj1/code/detection2/output_resnet101_fpn_3x_gpt/model_0019999.pth"  # 加载训练好的模型权重
+cfg.MODEL.RPN.POST_NMS_TOPK_TEST = 2000  # 增加RPN生成的proposals数量
 
 # 创建预测器
 predictor = DefaultPredictor(cfg)
 
-def get_proposals_and_predictions(cfg, model, image):
-    # 将图像转换为模型输入格式
-    height, width = image.shape[:2]
-    image_tensor = predictor.aug.get_transform(image).apply_image(image)
-    image_tensor = torch.as_tensor(image_tensor.astype("float32").transpose(2, 0, 1))
-    
-    inputs = {"image": image_tensor, "height": height, "width": width}
-
-    # 前向传播获取 RPN proposals 和最终预测结果
-    with torch.no_grad():
-        images = model.preprocess_image([inputs])
-        features = model.backbone(images.tensor)
-        proposals, _ = model.proposal_generator(images, features)
-        results, _ = model.roi_heads(images, features, proposals)
-    
-    return proposals[0], results[0]
-
-# def visualize_proposals_and_predictions(image, proposals, predictions, metadata):
-#     v = Visualizer(image[:, :, ::-1], metadata=metadata, scale=1.2)
-#     v = v.overlay_instances(boxes=proposals.proposal_boxes)
-#     proposals_img = v.get_image()[:, :, ::-1]
-
-#     v = Visualizer(image[:, :, ::-1], metadata=metadata, scale=1.2)
-#     v = v.draw_instance_predictions(predictions)
-#     predictions_img = v.get_image()[:, :, ::-1]
-
-#     return proposals_img, predictions_img
-
-def visualize_proposals_and_predictions(image, proposals, predictions, metadata):
-    proposals = proposals.to('cpu')
-    predictions = predictions.to('cpu')
-    
-    v = Visualizer(image[:, :, ::-1], metadata=metadata, scale=1.2)
-    v = v.overlay_instances(boxes=proposals.proposal_boxes)
-    proposals_img = v.get_image()[:, :, ::-1]
-
-    v = Visualizer(image[:, :, ::-1], metadata=metadata, scale=1.2)
-    v = v.draw_instance_predictions(predictions)
-    predictions_img = v.get_image()[:, :, ::-1]
-
-    return proposals_img, predictions_img
-
-def show_images(image_list, index, titles=None):
-    plt.figure(figsize=(20, 10))
-    for i, img in enumerate(image_list):
-        plt.subplot(1, len(image_list), i + 1)
-        plt.imshow(img)
-        if titles:
-            plt.title(titles[i])
-        plt.axis("off")
-    plt.savefig(f"/home/fudan248/zhangjinyu/code_repo/DATA620004-SS24/pj1/code/detection/visual_output/output_{index}.png")
-
-# 加载测试集
+# 加载VOC2007测试集
 dataset_dicts = DatasetCatalog.get("voc_2007_test")
-metadata = MetadataCatalog.get("voc_2007_test")
+MetadataCatalog.get("voc_2007_test").thing_classes = MetadataCatalog.get("voc_2007_test").thing_classes
 
 # 随机挑选4张图像
 random.seed(42)
-sampled_images = random.sample(dataset_dicts, 20)
+selected_images = random.sample(dataset_dicts, 4)
 
-# 加载模型
-model = build_model(cfg)
-DetectionCheckpointer(model).load(model_weights_path)
-model.eval()
-
-for index, d in enumerate(sampled_images):
-    image = cv2.imread(d["file_name"])
-    proposals, predictions = get_proposals_and_predictions(cfg, model, image)
-
-    proposals_img, predictions_img = visualize_proposals_and_predictions(
-        image, proposals, predictions, metadata
+# 进行预测和可视化
+for d in selected_images:
+    img = cv2.imread(d["file_name"])
+    
+    # 图像预处理
+    transform_gen = ResizeShortestEdge(
+        [cfg.INPUT.MIN_SIZE_TEST, cfg.INPUT.MIN_SIZE_TEST], cfg.INPUT.MAX_SIZE_TEST
     )
+    transformed_image = transform_gen.get_transform(img).apply_image(img)
+    transformed_image = torch.as_tensor(transformed_image.transpose(2, 0, 1)).cuda()
+    inputs = {"image": transformed_image, "height": img.shape[0], "width": img.shape[1]}
+    
+    with torch.no_grad():
+        images = predictor.model.preprocess_image([inputs])
+        features = predictor.model.backbone(images.tensor)
+        proposals, _ = predictor.model.proposal_generator(images, features)
+    
+    # 获取最终的预测结果
+    outputs = predictor(img)
+    
+    # 可视化RPN生成的proposals
+    v_proposals = Visualizer(img[:, :, ::-1], MetadataCatalog.get("voc_2007_test"), scale=1.2)
+    v_proposals = v_proposals.overlay_instances(boxes=proposals[0].proposal_boxes.tensor.cpu().numpy())
+    
+    # 可视化最终的预测结果
+    v_predictions = Visualizer(img[:, :, ::-1], MetadataCatalog.get("voc_2007_test"), scale=1.2)
+    v_predictions = v_predictions.draw_instance_predictions(outputs["instances"].to("cpu"))
 
-    # 显示原始图像、proposals 和最终预测结果
-    show_images([image[:, :, ::-1], proposals_img, predictions_img], index=index,
-                titles=["Original Image", "RPN Proposals", "Final Predictions"])
+    # 使用matplotlib展示
+    fig, ax = plt.subplots(1, 2, figsize=(20, 10))
+    ax[0].imshow(v_proposals.get_image()[:, :, ::-1])
+    ax[0].set_title('RPN Proposals')
+    ax[0].axis('off')
+
+    ax[1].imshow(v_predictions.get_image()[:, :, ::-1])
+    ax[1].set_title('Final Predictions')
+    ax[1].axis('off')
+    
+    plt.savefig(f"visual_output/{d['image_id']}.png")
+    plt.close()
