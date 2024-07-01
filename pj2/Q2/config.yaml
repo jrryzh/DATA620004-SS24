@@ -1,0 +1,19 @@
+data_path: 'data/'
+model_name: 'resnet18' # 'vit18'
+train_batch_size: 1024 # 1024
+test_batch_size: 128
+aug_type: 'random' # 'cutmix' 0.5874
+lr: 4e-3
+num_epochs: 200
+topK: 5
+cutmix_alpha: 1
+early_stop_num: 100
+model_save_path: 'YOUR_MODEL_PATH'
+
+# train
+# python main.py // 
+
+# test
+# python test.py // 
+
+# 指定 gpu , CUDA_VISIBLE_DEVICES=0
